@@ -1,4 +1,4 @@
-let restify = require('restify');
+// let restify = require('restify');
 let builder = require('botbuilder');
 
 // let server = restify.createServer();
@@ -23,7 +23,6 @@ let recognizer = new builder.LuisRecognizer(model);
 let dialog = new builder.IntentDialog({ recognizers: [recognizer] });
 // __IntentDialog__ Information:
 // https://docs.botframework.com/en-us/node/builder/chat-reference/classes/_botbuilder_d_.intentdialog.html
-// It is a class...
 let bot = new builder.UniversalBot(connector);
 
 
