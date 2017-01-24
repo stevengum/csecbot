@@ -51,10 +51,8 @@ dialog.matches('BuyItem', [
         }
     },
     //end first BuyItem function
-
     function (session, results, next) {
         let order = session.dialogData.order;
-        console.log(order.product.entity);
         if(results.response && !order.product) {
             order.product = results.response;
         }
@@ -65,7 +63,6 @@ dialog.matches('BuyItem', [
         }
     },
     //end second BuyItem function
-
     function (session, results, next) {
         let order = session.dialogData.order;
         // if(typeof results.response == "string") {
@@ -81,18 +78,14 @@ dialog.matches('BuyItem', [
         if(!order.quantity) {
             builder.Prompts.number(session, "I'm sorry, I didn't understand your response. How many would you like to order?");
         } else {
-            console.log(order.product);
             next();
         }
     },
     //end third BuyItem function
-
-// Need to convert the following messages prompts below to builder.Prompt.confirm(session, <question>)
-
-
+    // Need to convert the following messages prompts below to builder.Prompt.confirm(session, <question>)
+    // Redact that, confirm was not providing the desired response, even when using "yes" or "no"
     function (session, results, next) {
         let order = session.dialogData.order;
-        console.log(order);
         if(order.product.entity && order.quantity) {
             builder.Prompts.text(session, `If I understand correctly, you wish to order ${order.quantity} ${order.product.entity}? yes/no`);
         } else if(order.product && order.quantity) {
@@ -102,7 +95,6 @@ dialog.matches('BuyItem', [
         }
     },
     //end fourth BuyItem function
-
     function (session, results, next) {
         let order = session.dialogData.order;
         if(results.response == "yes") {
@@ -114,7 +106,6 @@ dialog.matches('BuyItem', [
         }
     },
     //end fifth BuyItem function
-
     function (session, results, next) {
         if(results.response == "yes") {
             session.endDialog(`You said "yes", order confirmed! This dialog will now end; thanks for ordering!`);
@@ -143,11 +134,49 @@ dialog.matches('BuyItem', [
 //
 dialog.matches('FindProducts', [
     function (session, args, next) {
-
+        let intent = args.intent;
+        let product = builder.EntityRecognizer.findEntity(args.entities, 'inventory.product.name');
+        let quantity = builder.EntityRecognizer.findEntity(args.entities, 'inventory.product.quantity');
+        let iQuery = session.dialogData.iQuery = {
+            product: product ? product.entity : null,
+            quantity: quantity ? quantity : null
+        };
+        if(!iQuery.product) {
+            builder.Prompts.text(session, "I'm sorry but I don't understand, would you please restate the item you are looking for?");
+        } else {
+            next();
+        }
     },
     //end FindProducts function 1
+    function (session, results, next) {
+        let iQuery = session.dialogData.iQuery;
+        if(results.response) {
+            iQuery.product = results.response;
+        }
+        if(iQuery.quantity){
+            builder.Prompts.text(session, `So you are inquiring about ${iQuery.product}, is this correct? yes/no`);
+        } else {
+            builder.Prompts.text(session, "How many are you looking for?");
+        }
+    },
+    //end FindProducts function 2
+    function (session, results, next) {
+        let iQuery = session.dialogData.iQuery;
+        if(iQuery.quantity) {
+            if(results.response == "yes") {
+                let randNum = Math.floor(Math.random() * (100 - 1) + 1);
+                session.endDialog(`We have ${randNum} ${iQuery.product}`);
+            // } else if(results.resonse == "no") {
+                //looking for reloadAction
+                // session.endDialog();
+            }
+        } else {
+            iQuery.quantity = results.response;
+            console.log(`Line 175, iQuery Object`, iQuery);
+        }
+    }
 ]);
-//
+
 // dialog.matches('ContactInfo', [
 //     function (session, args, next) {
 //
