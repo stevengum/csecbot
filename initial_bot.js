@@ -10,12 +10,7 @@ let builder = require('botbuilder');
 //     appId: process.env.MICROSOFT_APP_ID,
 //     appPassword: process.env.MICROSOFT_APP_PASSWORD
 // });
-//
-// server.post('/api/messages', connector.listen());
-//
-// let bot = new builder.UniversalBot(connector, function (session) {
-//     session.send(`You said ${session.message.text}`);
-// });
+
 
 let connector = new builder.ConsoleConnector().listen();
 let model = 'https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/cf50007f-d18f-483b-9c5c-98fde2dd4160?subscription-key=0620fb642aa145b6a9bf5a5023b0d3f5';
@@ -39,15 +34,19 @@ dialog.matches('BuyItem',
 );
 
 bot.dialog('/BuyItem', [
-    // the matches method receives a RegExp or string to examine for an already existing intent
     function (session, results, next) {
-        let intent = results.intent;
+        console.log(results.entities);
         let product = builder.EntityRecognizer.findEntity(results.entities, 'order.product.name');
         let quantity = builder.EntityRecognizer.findEntity(results.entities, 'order.product.quantity');
+        if(!quantity) {
+            quantity = builder.EntityRecognizer.findEntity(results.entities, 'builtin.number');
+        }
+
         let order = session.dialogData.order = {
-            product: product ? product : null,
-            quantity: quantity ? quantity : null
-        };
+            product: product ? product.entity : null,
+            quantity: quantity ? quantity.entity : null
+        }
+
         if(!order.product) {
             builder.Prompts.text(session,'What would you like to order? (Please only state the product/product name that you wish to purchase)');
         } else {
@@ -69,16 +68,10 @@ bot.dialog('/BuyItem', [
     //end second BuyItem function
     function (session, results, next) {
         let order = session.dialogData.order;
-        // if(typeof results.response == "string") {
-        //     let temp = builder.EntityRecognizer.findEntity(results.response, 'order.product.quantity');
-        // } else if (typeof results.response == "number") {
-        //     order.quantity = results.response;
-        // }
-        //above is beta code, the typeof results.response isn't required due to builder.Propts.number requiring a number input; pending deletion which will occur on 1/25/2016
-        // if (typeof results.response == "number") {
-        //      order.quantity = results.response;
-        // }
-        order.quantity = results.response;
+        if(typeof results.response == "number") {
+            order.quantity = results.response;
+        }
+
         if(!order.quantity) {
             builder.Prompts.number(session, "I'm sorry, I didn't understand your response. How many would you like to order?");
         } else {
@@ -86,13 +79,9 @@ bot.dialog('/BuyItem', [
         }
     },
     //end third BuyItem function
-    // Need to convert the following messages prompts below to builder.Prompt.confirm(session, <question>)
-    // Redact that, confirm was not providing the desired response, even when using "yes" or "no"
     function (session, results, next) {
         let order = session.dialogData.order;
-        if(order.product.entity && order.quantity) {
-            builder.Prompts.text(session, `If I understand correctly, you wish to order ${order.quantity} ${order.product.entity}? yes/no`);
-        } else if(order.product && order.quantity) {
+        if(order.product && order.quantity) {
             builder.Prompts.text(session, `If I understand correctly, you wish to order ${order.quantity} ${order.product}? yes/no`);
         } else {
             next();
@@ -101,7 +90,14 @@ bot.dialog('/BuyItem', [
     //end fourth BuyItem function
     function (session, results, next) {
         let order = session.dialogData.order;
+        let user = session.userData
+        if(user.name || user.email || user.phone) {
+            console.log(session.userData);
+        };
         if(results.response == "yes") {
+            if(!session.userData) {
+
+            }
             session.endDialog(`You said "yes", order confirmed! This dialog will now end; thanks for ordering!`);
         } else if(results.response == "no") {
             session.endDialog(`You said "no", the order has been canceled. This dialog will now end.`);
