@@ -32,13 +32,18 @@ bot.dialog('/', dialog);
 // the class dialog is the base class for all dialogs; line 23 is the dialog passed in as a parameter
 // core component of the botbuilder framework
 
+dialog.matches('BuyItem',
+    function(session, results){
+        session.beginDialog('/BuyItem', results);
+    }
+);
 
-dialog.matches('BuyItem', [
-// the matches method receives a RegExp or string to examine for an already existing intent
-    function (session, args, next) {
-        let intent = args.intent;
-        let product = builder.EntityRecognizer.findEntity(args.entities, 'order.product.name');
-        let quantity = builder.EntityRecognizer.findEntity(args.entities, 'order.product.quantity');
+bot.dialog('/BuyItem', [
+    // the matches method receives a RegExp or string to examine for an already existing intent
+    function (session, results, next) {
+        let intent = results.intent;
+        let product = builder.EntityRecognizer.findEntity(results.entities, 'order.product.name');
+        let quantity = builder.EntityRecognizer.findEntity(results.entities, 'order.product.quantity');
         let order = session.dialogData.order = {
             product: product ? product : null,
             quantity: quantity ? quantity : null
@@ -114,7 +119,7 @@ dialog.matches('BuyItem', [
             session.endDialog(`I'm sorry but I do not understand... I will now end this dialog. Goodbye.`);
         }
     }
-] );
+])
 //end of intent 'BuyItem'
 
 // dialog.matches('GetShippingAddress', [
@@ -131,14 +136,20 @@ dialog.matches('BuyItem', [
 //     //end PriceCheck function 1
 // ]);
 //
-dialog.matches('FindProducts', [
+// bot.dialog('/PriceCheck',
+//     function(session,args) {
+//         console.log();
+//     })
+// dialog.matches('FindProducts', function(session) {session.beginDialog('/FindProducts')}
+/*[
     function (session, args, next) {
         let intent = args.intent;
+        console.log("These are the args: \n", args);
         let product = builder.EntityRecognizer.findEntity(args.entities, 'inventory.product.name');
         let quantity = builder.EntityRecognizer.findEntity(args.entities, 'inventory.product.quantity');
         let iQuery = session.dialogData.iQuery = {
             product: product ? product.entity : null,
-            quantity: quantity ? quantity : null
+            quantity: quantity ? quantity.entity : null
         };
         if(!iQuery.product) {
             builder.Prompts.text(session, "I'm sorry but I don't understand, would you please restate the item you are looking for?");
@@ -152,9 +163,11 @@ dialog.matches('FindProducts', [
         if(results.response) {
             iQuery.product = results.response;
         }
+        console.log("line 155, iQuery object", session.dialogData.iQuery);
         if(iQuery.quantity){
             builder.Prompts.text(session, `So you are inquiring about ${iQuery.product}, is this correct? yes/no`);
         } else {
+            // session.dialogStack();
             builder.Prompts.text(session, "How many are you looking for?");
         }
     },
@@ -164,22 +177,91 @@ dialog.matches('FindProducts', [
         if(iQuery.quantity) {
             if(results.response == "yes") {
                 let randNum = Math.floor(Math.random() * (100 - 1) + 1);
+                session.dialogData.iQuery = {inventory: randNum};
                 session.endDialog(`We have ${randNum} ${iQuery.product}`);
-            // } else if(results.resonse == "no") {
-                //looking for reloadAction
-                // session.endDialog();
+            }
+            if(results.response == "no") {
+                session.replaceDialog('FindProducts');
             }
         } else {
             iQuery.quantity = results.response;
             console.log(`Line 175, iQuery Object`, iQuery);
         }
     }
-]);
-
-// dialog.matches('ContactInfo', [
+]*///);
+// bot.dialog('/FindProducts', [
 //     function (session, args, next) {
-//
+//         // let intent = args.intent;
+//         let product = builder.EntityRecognizer.findEntity(args.entities, 'inventory.product.name');
+//         let quantity = builder.EntityRecognizer.findEntity(args.entities, 'inventory.product.quantity');
+//         let iQuery = session.dialogData.iQuery = {
+//             product: product ? product.entity : null,
+//             quantity: quantity ? quantity.entity : null
+//         };
+//         if(!iQuery.product) {
+//             builder.Prompts.text(session, "I'm sorry but I don't understand, would you please restate the item you are looking for?");
+//         } else {
+//             next();
+//         }
+//     },
+//     //end FindProducts function 1
+//     function (session, results, next) {
+//         let iQuery = session.dialogData.iQuery;
+//         if(results.response) {
+//             iQuery.product = results.response;
+//         }
+//         console.log("line 155, iQuery object", session.dialogData.iQuery);
+//         if(iQuery.quantity){
+//             builder.Prompts.text(session, `So you are inquiring about ${iQuery.product}, is this correct? yes/no`);
+//         } else {
+//             // session.dialogStack();
+//             builder.Prompts.text(session, "How many are you looking for?");
+//         }
+//     },
+//     //end FindProducts function 2
+//     function (session, results, next) {
+//         let iQuery = session.dialogData.iQuery;
+//         if(iQuery.quantity) {
+//             if(results.response == "yes") {
+//                 let randNum = Math.floor(Math.random() * (100 - 1) + 1);
+//                 session.dialogData.iQuery = {inventory: randNum};
+//                 session.endDialog(`We have ${randNum} ${iQuery.product}`);
+//             }
+//             if(results.response == "no") {
+//                 session.replaceDialog('/FindProducts');
+//             }
+//         } else {
+//             iQuery.quantity = results.response;
+//             console.log(`Line 175, iQuery Object`, iQuery);
+//         }
 //     }
-//     //end ContactInfo function 1
 // ]);
+dialog.matches('ContactInfo', [
+    //uses LUIS to match intents...
+    function (session, results) {
+        //Through having the LuisRecognizer and IntentDialog match to this; we're able to create a dialog which can be called in methods such as session.replaceDialog, and session.beingDialog
+        session.beginDialog('/ContactInfo', results);
+    }
+]);
+bot.dialog('/ContactInfo', [
+    function(session, results, next){
+        if(session.userData) {
+            console.log("\nLine 245, session.userData?\n", session.userData);
+        }
+        let phone = builder.EntityRecognizer.findEntity(results.entities, 'customer.info.phone');
+        let email = builder.EntityRecognizer.findEntity(results.entities, 'builtin.email');
+        session.userData.phone = phone ? phone.entity : null;
+        session.userData.email = email ? email.entity : null;
+
+        console.log("\n~~~~~\nLine 256, results object: ", results);
+        builder.Prompts.text(session, results);
+    },
+    function(session, results, next){
+        console.log("Line 261, session.dialogData:\n", session.userData);
+        if (results) {
+            console.log("\n~~~~~\nLine 261, results object: ", results);
+        }
+        session.endDialog("End of '/ContactInfo'");
+    }
+])
 dialog.onDefault(builder.DialogAction.send("I'm sorry I didn't understand. I only assist in shopping."));
