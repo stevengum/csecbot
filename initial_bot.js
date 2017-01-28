@@ -35,7 +35,6 @@ dialog.matches('BuyItem',
 
 bot.dialog('/BuyItem', [
     function (session, results, next) {
-        // console.log(results.entities);
         let product = builder.EntityRecognizer.findEntity(results.entities, 'order.product.name');
         let quantity = builder.EntityRecognizer.findEntity(results.entities, 'order.product.quantity');
         if(!quantity) {
@@ -69,15 +68,9 @@ bot.dialog('/BuyItem', [
     //end second BuyItem function
     function (session, results, next) {
         let order = session.dialogData.order;
+
         if(typeof results.response == "number") {
             order.quantity = results.response;
-            // currently do not remember what this little bit is for.
-            // let temp = results.entities ? results.entities : "No results.entities";
-            // let temp = builder.EntityRecognizer.findEntity(results.entities, 'builtin.number');
-            // console.log(temp);
-            // if(typeof temp == "string"){
-            //     console.log("here is the results object:\n", results);
-            // }
         }
 
         if(!order.quantity) {
@@ -89,6 +82,7 @@ bot.dialog('/BuyItem', [
     //end third BuyItem function
     function (session, results, next) {
         let order = session.dialogData.order;
+
         if(typeof results.response == "number") {
             order.quantity = results.response;
         }
@@ -106,24 +100,34 @@ bot.dialog('/BuyItem', [
         let user = session.userData;
 
         if(results.response) {
+            // If the user has confirmed their order, the ChatBot will then check its session object to see if contact information for the user exists.
             if(!user.email && !user.phone) {
-                //if no contact info, yes will 'beginDialog('/ContactInfo')'
+                // If no contact info, yes will begin the dialog '/ContactInfo'.
                 builder.Prompts.confirm(session, "You replied \"yes\", unfortunately your contact information is not on hand, if you wish to do so, we are still able to complete your order.\nIf you'd like to, you may submit your contact information. Would you like to do so? yes/no");
+                // The user should be prompted to confirm their contact information that is stored within the session object.
+
             } else if (!user.email){
                 //if no email, yes will start builder.Prompts.text(session, "Okay, what is your email address?");
                 builder.Prompts.confirm(session, "You replied \"yes\", unfortunately your email is not on hand, if you wish to do so, we are still able to complete your order.\nIf you'd like to, you may submit your email. Would you like to do so? yes/no");
+                // These else if statements should be rolled into the session.beginDialog().
+                // Code to follow.... (1.28.16)
+                // The user should be prompted to confirm their contact information that is stored within the session object.
+
             } else if (!user.phone){
                 //if no email, yes will start builder.Prompts.text(session, "Okay, what is your phone number?");
                 builder.Prompts.confirm(session, "You replied \"yes\", unfortunately your phone number is not on hand, if you wish to do so, we are still able to complete your order.\nIf you'd like to, you may submit your phone number. Would you like to do so? yes/no");
+                // These else if statements should be rolled into the session.beginDialog().
+                // Code to follow.... (1.28.16)
+                // The user should be prompted to confirm their contact information that is stored within the session object.
 
             } else {
-                //if both user.email && user.phone, confirm order and close dialog.
+                // If both user.email & user.phone exists, confirm order and close dialog. See line 91 for builder.Prompts.confirm().
                 session.endDialog(`You said "yes", order confirmed! This dialog will now end; thanks for ordering!`);
             }
-            //end of results.response == "yes"
+            // End of results.response.
 
         } else if(!results.response) {
-            //rapid closure of dialog on response of 'no'
+            // Rapid closure of dialog on response of 'no'.
             session.endDialog(`You said "no", the order has been canceled. This dialog will now end.`);
         }
     },
@@ -132,26 +136,31 @@ bot.dialog('/BuyItem', [
     function (session, results, next) {
         let user = session.userData;
         if(results.response) {
-            if (!user.email && !user.phone) {//no contact information on hand, beginDialog("/ContactInfo");
-            console.log("~~~~~\nline140 hello session.userData:\n", session.userData);
-            console.log("~~~~~\n");
-            session.beginDialog('/ContactInfo');
+            // User replied yes to one of the queries regarding user inputting contact information.
+
+            if (!user.email && !user.phone) {
+                session.beginDialog('/ContactInfo');
 
                 // session.beginDialog("/ContactInfo", results);
                 //passing results along, but since the answer will be yes... the results won't (shouldn't) do anything in the /ContactInfo waterfall.
             } else if (!user.email) {
-                //prompt for email
+                // Prompt for email address.
                 builder.Promtpts.text(session, "What is your email address?");
+
             } else if (!user.phone) {
-                //prompt for phone number
-                builder.Prompts.text(session, "What is your phone number?");
+                // Prompt for phone number.
+                builder.Prompts.text(session, "What is your phone number? ###-###-####");
+
             } else {
-                //user's data exists, user confirms order, dialog ends
+                // User's data exists, user confirms order, dialog ends.
                 session.endDialog(`Order confirmed! This dialog will now end; thanks for ordering!`);
             }
-            //this is the end of results.response == "yes"
+            // This is the end of results.response.
+
         } else if(!results.response) {
-            //user has decided against the order.
+            // User has decided against the order.
+
+            // This needs to be reworked, the user might be saying no to supplying their contact information, in which case they may still proceed with their order.
             session.endDialog(`You said "no", the order has been canceled. This dialog will now end.`);
         }
     },
@@ -163,70 +172,40 @@ bot.dialog('/BuyItem', [
         console.log("line 170 results.response:\n", results.response);
         if(!user.email) {
             let regex = new RegExp(/\w+@+\w+\.+\w{2,10}$/);
+            user.email = regex.test(results.response) ? results.response : null;
 
-            if(regex.test(results.response)) {
-                user.email = results.response;
+            if(!user.email) {
                 session.endDialog("Email received, order confirmed. Thank you!");
             }
+
+            session.endDialog("Email received, order confirmed. Thank you!");
         }
 
         if(!user.phone) {
-            //regex phone number... if(regex.test(results.response)) {
-        //     user.phone = results.response;
-        // } else {
-        //     //go back and ask again.. somehow.
-        // }
-            user.phone = results.reponse;
-            session.endDialog("Phone number received, order confirmed. Thank you!");
+            let regexA = new RegExp(/\d{3}\-\d{3}\-\d{4}/);
+            user.phone = regexA.test(results.response) ? results.response : null;
+
+            if(!user.phone) {
+                let regexB = new RegExp(/\d{3}\-\d{3}/);
+                user.phone = regexB.test(results.response) ? results.response : null;
+
+                if(user.phone) {
+                    session.endDialog("Phone number received, order confirmed. Thank you!");
+                }
+
+            } else {
+                session.endDialog("Phone number received, order confirmed. Thank you!");
+            }
 
         } else {
-            session.endDialog("Contact info received, order conirmed. Thank you!");
-            // next();
+            // Not sure if this will ever be hit..
+            // Wow, it was after we were redirected to the "/ContactInfo" dialog.
+            session.endDialog("Line 184: Contact info received, order confirmed. Thank you!");
         }
     },
     // end seventh BuyItem function
 
-    // function (session, results, next) {
-    //     let user = session.userData;
-    //     if(!user.email) {
-    //         let regex = /[^\s@]+@[^\s@]+\.[^\s@]+/;
-    //         regex.test(results.response);
-    //     } else {
-    //         if(!user.phone) {
-    //             builder.Prompts.text(session, "What is your phone number? Please format it as e.g
-    //\"222-333-4444\".");
-    //         }
-    //         next();
-    //     }
-    //
-    // },
-    //end eighth BuyItem function
-
-    // function (session, results, next) {
-    //     let user = session.userData;
-    //     if(!user.phone) {
-    //         let regex = /[0-9]/;
-    //         let regex = ^[2-9]\d{2}-\d{3}-\d{4}$;
-    //     } else {
-    //         next();
-    //     }
-    //
-    // },
-    //end ninth BuyItem function
-    // function (session, results, next) {
-    //
-    // },
-    // //end eighth BuyItem function
-    // function (session, results, next) {
-    //
-    // },
-    // //end eighth BuyItem function
-    //
-    // function (session, results, next) {
-    //     let user = session.userData;
-    //     let email = builder.EntityRecognizer.findEntity(results.entities,'email');
-    // }
-])
+]);
 
 // dialog.matches('GetShippingAddress', [
 //     function (session, args, next) {
@@ -343,29 +322,30 @@ bot.dialog('/BuyItem', [
 //     }
 // ]);
 //end of intent 'BuyItem'
-dialog.matches('ContactInfo', [
-    //uses LUIS to match intents...
-    function (session, results) {
+dialog.matches('ContactInfo', function (session, results) {
         //Through having the LuisRecognizer and IntentDialog match to this; we're able to create a dialog which can be called in methods such as session.replaceDialog, and session.beingDialog
-        session.beginDialog('/ContactInfo', results);
-    }
-]);
+    session.beginDialog('/ContactInfo', results);
+});
+
 bot.dialog('/ContactInfo', [
     function(session, results, next){
         let user = session.userData;
         if(user) {
-            console.log("\nLine 363, session.userData?\n", user);
+            console.log("\nLine 325, this is the session.userData on hand:\n", user);
         }
+        // Need to add code for case of session.userData already existing.
 
         if(results) {
             let phone = builder.EntityRecognizer.findEntity(results.entities, 'customer.info.phone');
             if(!phone) {
                 phone = builder.EntityRecognizer.findEntity(results.entities, 'builtin.phonenumber');
             }
+
             let email = builder.EntityRecognizer.findEntity(results.entities, 'builtin.email');
             user.phone = phone ? phone.entity : null;
             user.email = email ? email.entity : null;
             console.log("\n~~~~~\nLine 374, results object: ", results);
+            console.log("~~~~~");
         }
         if(!user.email) {
             builder.Prompts.text(session, "What is your email address?");
@@ -385,33 +365,116 @@ bot.dialog('/ContactInfo', [
             let regex = new RegExp(/\w+@+\w+\.+\w{2,10}$/);
             user.email = regex.test(results.response) ? results.response : null;
             console.log("\nRegex results:", regex.test(results.response));
+
             if (!user.email) {
                 builder.Prompts.text(session, "That is an invalid email, please reenter your email address.");
             }
+        }
+        next();
+    },
 
-            builder.Prompts.text(session, "Line 390, Hello?");
+    function(session,results,next){
+        let user = session.userData;
+
+        if(!user.email) {
+            let regex = new RegExp(/\w+@+\w+\.+\w{2,10}$/);
+            user.email = regex.test(results.response) ? results.response : null;
+
+            if(!user.email) {
+                // Need to think of what to put here.....
+                // Or in other words, how to handle a user inputting an invalid email twice.
+                session.send("Invalid email.");
+            }
+            if(!user.phone) {
+                builder.Prompts.text(session, "Email received! Please enter your phone number in the format of ###-###-#### or ###-####.\n");
+            }
 
         } else if (!user.phone) {
-            let regex ;
-            user.phone = regex.test(results.response) ? results.response : null;
-            if (user.phone) {
-                builder.Prompts.text(session, "Line 396");
+            let regexA = new RegExp(/\d{3}\-\d{3}\-\d{4}/);
+            user.phone = regexA.test(results.response) ? results.response : null;
+
+            if(!user.phone) {
+                let regexB = new RegExp(/\d{3}\-\d{3}/);
+                user.phone = regexB.test(results.response) ? results.response : null;
             }
+
+            if(user.phone) {
+                next();
+            } else {
+                builder.Prompts.text(session, "Please enter your phone number in the format of ###-###-#### or ###-####.");
+            }
+
+        } else {
+            // If user.email and user.phone exists, then we move to the next step.
+            next();
+        }
+    },
+
+    function (session, results, next) {
+        let user = session.userData;
+
+        if (!user.phone) {
+            // First regex attempt, which uses the format of NNN-NNN-NNNN.
+            // LUIS only picks up on this format (a.k.a. US-format) for its builtin.phonenumber.
+            let regexA = new RegExp(/\d{3}\-\d{3}\-\d{4}/);
+            user.phone = regexA.test(results.response) ? results.response : null;
+
+            if(!user.phone) {
+                // The previous regex attempt did not work, we're now using a regex pattern without the area code.
+                let regexB = new RegExp(/\d{3}\-\d{3}/);
+                user.phone = regexB.test(results.response) ? results.response : null;
+            }
+
+            if (!user.phone) {
+                // After both regex attempts, if the phone number is not valid, reprompt user for phone number.
+                builder.Prompts.text(session, "That is an invalid phone number, please reenter your phone number in the format of ###-###-#### or ###-###-###.\n");
+
+            } else {
+                // Otherwise, the phone number is valid and we proceed to next step.
+                next();
+            }
+
+        } else {
+            // If user.phone already exists, then we move to the next step.
+            next();
         }
     },
 
     function(session, results, next){
         let user = session.userData;
-        console.log("Line 261, session.dialogData:\n", session.userData);
-        // if (results) {
-        //     console.log("\n~~~~~\nLine 261, results object: ", results);
-        // }
+
+        if (!user.phone) {
+            // First regex attempt, which uses the format of NNN-NNN-NNNN.
+            // LUIS only picks up on this format (a.k.a. US-format) for its builtin.phonenumber.
+            let regexA = new RegExp(/\d{3}\-\d{3}\-\d{4}/);
+            user.phone = regexA.test(results.response) ? results.response : null;
+
+            if(!user.phone) {
+                // The previous regex attempt did not work, we're now using a regex pattern without the area code.
+                let regexB = new RegExp(/\d{3}\-\d{3}/);
+                user.phone = regexB.test(results.response) ? results.response : null;
+            }
+        }
+
         if (user.email && user.phone) {
-            //email and phone number received, and /ContactInfo ends.
+            // For UX, there should be an if statement here which displays their contact info.
+            // It should present a builder.Prompts.confirm() which verifies that the information they submitted is correct.
+
+            // User's email and phone number received, so "/ContactInfo" ends.
             session.endDialog("Conact information received, ending of '/ContactInfo'");
         } else {
-            //if user.email and user.phone are not complete, the dialog restarts.
+            //if user.email and user.phone are not complete, prompt for the dialog to restart.
+            builder.Prompts.confirm(session, "Incomplete contact information, would you like to try submitting your info again?");
+        }
+    },
+
+    function(session, results, next) {
+        if(results.response) {
+            // User decided to attempt resubmitting their missing contact information, which restarts this dialog.
             session.beginDialog("/ContactInfo");
+        } else {
+            // User decided on proceeding with incomplete contact information, which ends this dialog.
+            session.endDialog("Understood, closing this dialog!");
         }
     }
 ])
