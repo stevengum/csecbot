@@ -21,7 +21,7 @@ module.exports = function(builder, bot) {
             if(results.response) {
                 iQuery.product = results.response;
             }
-            console.log("line 155, iQuery object", session.dialogData.iQuery);
+            console.log("line 24-FindProducts.js, iQuery object", session.dialogData.iQuery);
             if(iQuery.quantity){
                 builder.Prompts.text(session, `So you are inquiring about ${iQuery.product}, is this correct? yes/no`);
             } else {
@@ -43,7 +43,7 @@ module.exports = function(builder, bot) {
                 }
             } else {
                 iQuery.quantity = results.response;
-                console.log(`Line 175, iQuery Object`, iQuery);
+                console.log(`Line 46-FindProducts, iQuery Object`, iQuery);
             }
         }
     ]

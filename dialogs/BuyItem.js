@@ -135,7 +135,6 @@ module.exports = function(builder, bot) {
     function (session, results, next) {
         let user = session.userData;
 
-        console.log("line 170 results.response:\n", results.response);
         if(!user.email) {
             let regex = new RegExp(/\w+@+\w+\.+\w{2,10}$/);
             user.email = regex.test(results.response) ? results.response : null;

@@ -16,8 +16,6 @@ module.exports = function(builder, bot) {
                 let email = builder.EntityRecognizer.findEntity(results.entities, 'builtin.email');
                 user.phone = phone ? phone.entity : null;
                 user.email = email ? email.entity : null;
-                console.log("\n~~~~~\nLine 374, results object: ", results);
-                console.log("~~~~~");
             }
             if(!user.email) {
                 builder.Prompts.text(session, "What is your email address?");
@@ -36,7 +34,6 @@ module.exports = function(builder, bot) {
             if(!user.email) {
                 let regex = new RegExp(/\w+@+\w+\.+\w{2,10}$/);
                 user.email = regex.test(results.response) ? results.response : null;
-                console.log("\nRegex results:", regex.test(results.response));
 
                 if (!user.email) {
                     builder.Prompts.text(session, "That is an invalid email, please reenter your email address.");
