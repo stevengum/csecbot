@@ -2,34 +2,102 @@ module.exports = function(builder, bot) {
     return [
         function(session, results, next){
             let user = session.userData;
-            if(user) {
-                console.log("\nLine 325, this is the session.userData on hand:\n", user);
-            }
-            // Need to add code for case of session.userData already existing.
+            // if(user) {
+                console.log("\nLine 6, this is the session.userData on hand:\n", user);
+                
+                if(user.phone && user.email) {
+                    builder.Prompts.confirm(session, `We already have contact information for this session, are the following your correct email and phone number?\n    1. ${user.email}\n    2. ${user.phone}`);        
+                }
+                // If both user.phone and user.email exists, confirm with user that these are the correct email and phone number.
+                else if(user.email) {
+                    builder.Prompts.confirm(session, `We have the email, "${user.email}", for this session; is this the correct email?`);
+                }
+                // If only user.email exists.
+                else {
+                    builder.Prompts.confirm(session, `We have the phone number, "${user.phone}", for this session; is this the correct phone number?`);
+                }
+                // If only user.phone exists.
 
-            if(results) {
-                let phone = builder.EntityRecognizer.findEntity(results.entities, 'customer.info.phone');
-                if(!phone) {
-                    phone = builder.EntityRecognizer.findEntity(results.entities, 'builtin.phonenumber');
+            // }
+            // End of user's contact info already existing
+
+            if(!user) {
+                if(results) {
+                    let phone = builder.EntityRecognizer.findEntity(results.entities, 'customer.info.phone');
+                    if(!phone) {
+                        phone = builder.EntityRecognizer.findEntity(results.entities, 'builtin.phonenumber');
+                    }
+
+                    let email = builder.EntityRecognizer.findEntity(results.entities, 'builtin.email');
+                    user.phone = phone ? phone.entity : null;
+                    user.email = email ? email.entity : null;
                 }
 
-                let email = builder.EntityRecognizer.findEntity(results.entities, 'builtin.email');
-                user.phone = phone ? phone.entity : null;
-                user.email = email ? email.entity : null;
-            }
-            if(!user.email) {
-                builder.Prompts.text(session, "What is your email address?");
+                if(!user.email) {
+                    builder.Prompts.text(session, "What is your email address?");
 
-            } else if(!user.phone) {
-                builder.Prompts.text(session, "What is your phone number?");
+                } else if(!user.phone) {
+                    builder.Prompts.text(session, "What is your phone number?");
 
-            } else {
-                next();
+                } else {
+                    next();
+                }
             }
+            // End case of no user session data already existing
         },
-
+        // might need to separate these two waterfall steps into three or four steps; one to check if entities were passed; one to check if user data already exists, one to handle retrieving data in the face of incomplete data, and one to proceed obtaining data as "normal".
         function (session,results,next) {
             let user = session.userData;
+            
+            if(results.response) {
+            // This code might need to go after the handling of the !user.email and !user.phone code, since it's just checking if results.response exists.
+            // Will need to follow the logic train for it. {9:00AM 2017/2/4}
+
+            // Nevermind, this will stay here, as the code below the confirming section (i.e. the code that adds either the email address or phone number) will parse the response for an email address or phone number.
+            // The RegExp patterns below would prevent these confirmation responses from firing. {9:15AM 2017/2/4}
+                if(user.email && user.phone) {
+                    session.endDialog("Awesome!, Thanks for confirming your information!");
+                }
+                // User confirmed email and phone number. Ending ContactInfo dialog.
+                else if (user.email) {
+                    builder.Prompts.text(session, "Fantastic, what is your phone number?");
+                }
+                // User confirmed email address, no pre-existing phone number in session.userData. Prompting for phone number.
+                else {
+                    builder.Prompts.text(session, "Awesome! What is your email address?");
+                }
+                // User confirmed phone number, no pre-existing email address in session.userData. Prompting for email address.
+            }
+            // Above is to receive a confirmation that the already registered information with the chatbot is correct.
+            // If so, then the bot will complete the rest of the dialog.
+            // Otherwise, we'll create a child ContactInfo dialog(?) to create prompts for the new information? 
+            // Concern about comment above; might have to seriously remodify dialog; might be better to instead continue without creating a new child dialog.
+            
+            if(!results.response) {
+                // User said no, the information currently in the session.userData object is not correct.
+                if(user.email && user.phone ) {
+                    user.email = null;
+                    user.phone = null;
+                    // Might chain lines 76 & 77.
+                    builder.Prompts.text(session, "I'm sorry about that, what is your email address?");
+                }
+                // Prompting user for new/correct email address. In next waterfall steps, will proceed to prompt about the phone number.
+
+                // Will eventually need to add code that check with user which piece of information inside of the session.userData object is incorrect.
+                // If the email address is incorrect, then just nullify that property, not the phone number.
+                // Afterwards, proceed to re-obtain the new and correct piece of user's contact information.
+                else if(user.email) {
+                    user.email = null;
+                    builder.Prompts.text(session, "I'm sorry about this, what is your email address?");
+                }
+                // The email address was not correct, remove it from session.userData and prompt user for new email address.
+                else if (user.phone) {
+                    user.phone = null;
+                    builder.Prompts.text(session, "I'm sorry about this, what is your phone number?");
+                }
+                // The phone number was not correct, removing from session.userData and prompting user for new phone number.
+            }
+            // End of if user said no, the contact information in the session.userData is incorrect.  
 
             if(!user.email) {
                 let regex = new RegExp(/\w+@+\w+\.+\w{2,10}$/);
