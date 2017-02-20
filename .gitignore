@@ -4,3 +4,4 @@ node_modules/
 *.html
 *.pdf
 LUIS_Help_files/
+LUISConfig.js
